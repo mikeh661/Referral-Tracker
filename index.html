@@ -304,18 +304,9 @@
         <small>Referral Tracker</small>
       </div>
     </div>
-    <h1 id="loginTitle">Welcome back</h1>
-    <div class="sub" id="loginSub">Sign in to manage adviser referrals</div>
+    <h1>Welcome back</h1>
+    <div class="sub">Sign in to manage adviser referrals</div>
 
-    <div class="login-tabs">
-      <button id="tabLogin" class="active" onclick="switchAuth('login')">Sign in</button>
-      <button id="tabSignup" onclick="switchAuth('signup')">Sign up</button>
-    </div>
-
-    <div id="signupNameField" class="field hidden">
-      <label>Full name</label>
-      <input id="signupName" type="text" placeholder="Jane Doe" />
-    </div>
     <div class="field">
       <label>Email</label>
       <input id="authEmail" type="email" placeholder="you@castle-estates.co.uk" autocomplete="email" />
@@ -326,6 +317,7 @@
     </div>
     <button id="authSubmit" class="primary" style="width:100%;padding:11px" onclick="submitAuth()">Sign in</button>
     <div id="authMsg"></div>
+    <p style="text-align:center;margin-top:18px;font-size:12px;color:var(--muted)">Need an account? Contact your administrator.</p>
   </div>
 </div>
 
@@ -576,8 +568,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ============== CONFIG ==============
 // Replace with your Supabase project credentials
-const SUPABASE_URL  = window.SUPABASE_URL  || 'https://tovftuasxbpjwugiqcih.supabase.co';
-const SUPABASE_ANON = window.SUPABASE_ANON || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvdmZ0dWFzeGJwand1Z2lxY2loIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0ODI3NzIsImV4cCI6MjA5NDA1ODc3Mn0.evRo-p5epElnUN8bedg2fHa52U7wNM0Y-OWh-LN12do';
+const SUPABASE_URL  = window.SUPABASE_URL  || 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON = window.SUPABASE_ANON || 'YOUR_SUPABASE_ANON_KEY';
 
 if (SUPABASE_URL.startsWith('YOUR_')) {
   document.body.innerHTML = `
@@ -680,17 +672,6 @@ function buildUpdateWaMessage(referral, adviser) {
 }
 
 // ============== AUTH ==============
-window.switchAuth = (mode) => {
-  state.authMode = mode;
-  $('tabLogin').classList.toggle('active', mode === 'login');
-  $('tabSignup').classList.toggle('active', mode === 'signup');
-  $('signupNameField').classList.toggle('hidden', mode !== 'signup');
-  $('loginTitle').textContent = mode === 'signup' ? 'Create account' : 'Welcome back';
-  $('loginSub').textContent = mode === 'signup' ? 'New users start as agents — an admin will set your role.' : 'Sign in to manage adviser referrals';
-  $('authSubmit').textContent = mode === 'signup' ? 'Create account' : 'Sign in';
-  $('authMsg').innerHTML = '';
-};
-
 window.submitAuth = async () => {
   const email = $('authEmail').value.trim();
   const password = $('authPassword').value;
@@ -700,20 +681,8 @@ window.submitAuth = async () => {
 
   $('authSubmit').disabled = true;
   try {
-    if (state.authMode === 'signup') {
-      const fullName = $('signupName').value.trim();
-      if (!fullName) { msg.innerHTML = '<div class="login-msg error">Please enter your full name.</div>'; return; }
-      const { data, error } = await supabase.auth.signUp({
-        email, password, options: { data: { full_name: fullName } }
-      });
-      if (error) throw error;
-      if (!data.session) {
-        msg.innerHTML = '<div class="login-msg success">Check your email to confirm your account, then sign in.</div>';
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   } catch (e) {
     msg.innerHTML = `<div class="login-msg error">${e.message}</div>`;
   } finally {
@@ -1160,7 +1129,7 @@ window.postUpdate = async () => {
 boot();
 
 // Allow Enter to submit on login
-['authEmail','authPassword','signupName'].forEach(id => {
+['authEmail','authPassword'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => {
     if (e.key === 'Enter') submitAuth();
   });
