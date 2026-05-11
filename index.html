@@ -400,7 +400,7 @@
     <section id="adminTab" class="hidden">
       <h2 class="display" style="margin-bottom:14px">Team members</h2>
       <div class="config-warn">
-        New users sign up themselves — share the app URL with them. Once they appear here you can set their role and add their WhatsApp number (advisers only need this — international format with country code, e.g. <code>+447700900123</code>).
+        Create new users in Supabase (Authentication → Users → Add user, tick Auto Confirm). Once they appear here, you can edit their name, role, WhatsApp number, and active status. Name and phone save when you click away from the field; role and active save immediately. Email is the login identifier and can only be changed from the Supabase dashboard.
       </div>
       <div class="table-wrap">
         <table>
@@ -877,8 +877,11 @@ function renderAdmin() {
   const tb = $('userRows');
   tb.innerHTML = state.profiles.map(p => `
     <tr>
-      <td>${escapeHtml(p.full_name)}${p.id === state.profile.id ? ' <span style="color:var(--muted);font-size:12px">(you)</span>' : ''}</td>
-      <td style="color:var(--muted)">${escapeHtml(p.email)}</td>
+      <td>
+        <input type="text" data-uid="${p.id}" data-field="full_name" value="${escapeHtml(p.full_name)}" style="min-width:160px" />
+        ${p.id === state.profile.id ? ' <span style="color:var(--muted);font-size:12px;margin-left:4px">(you)</span>' : ''}
+      </td>
+      <td style="color:var(--muted)" title="Email is the login identifier — change it in Supabase Auth → Users if needed">${escapeHtml(p.email)}</td>
       <td>
         <select data-uid="${p.id}" data-field="role" ${p.id === state.profile.id ? 'disabled' : ''}>
           <option value="agent" ${p.role==='agent'?'selected':''}>Agent</option>
@@ -894,8 +897,9 @@ function renderAdmin() {
       </td>
     </tr>
   `).join('');
+  // Role + Active save immediately on change
   tb.querySelectorAll('select, input[type=checkbox]').forEach(el => {
-    el.addEventListener('change', async (e) => {
+    el.addEventListener('change', async () => {
       const uid = el.dataset.uid;
       const field = el.dataset.field;
       const value = field === 'active' ? el.checked : el.value;
@@ -906,15 +910,22 @@ function renderAdmin() {
       populateAssignmentDropdowns();
     });
   });
-  // Phone field saves on blur (avoid a save per keystroke)
-  tb.querySelectorAll('input[type=tel]').forEach(el => {
+  // Text inputs (name, phone) save on blur to avoid a write per keystroke
+  tb.querySelectorAll('input[type=text], input[type=tel]').forEach(el => {
     el.addEventListener('blur', async () => {
       const uid = el.dataset.uid;
-      const value = el.value.trim() || null;
-      const { error } = await supabase.from('profiles').update({ phone: value }).eq('id', uid);
+      const field = el.dataset.field;
+      let value = el.value.trim();
+      if (field === 'phone') value = value || null;
+      if (field === 'full_name' && !value) { toast('Name cannot be empty'); await loadProfiles(); renderAdmin(); return; }
+      const { error } = await supabase.from('profiles').update({ [field]: value }).eq('id', uid);
       if (error) { toast('Update failed: ' + error.message); return; }
       toast('Saved');
       await loadProfiles();
+      if (field === 'full_name') {
+        renderTable(); // refresh referral list to show updated adviser names
+        populateAssignmentDropdowns();
+      }
     });
   });
 }
