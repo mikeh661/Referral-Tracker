@@ -477,6 +477,14 @@
       <div class="timeline" id="timeline"></div>
     </div>
 
+    <div class="drawer-section" id="dangerZoneSection" style="display:none">
+      <h3 style="color:var(--danger)">Danger zone</h3>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 12px">
+        Permanently delete this referral and all its timeline updates. This cannot be undone.
+      </p>
+      <button class="danger" onclick="deleteReferral()">Delete referral</button>
+    </div>
+
   </div>
 </aside>
 
@@ -1048,6 +1056,9 @@ window.openDrawer = async (id) => {
   $('updateText').value = '';
   await loadTimeline(id);
 
+  // Show admin-only danger zone
+  $('dangerZoneSection').style.display = state.profile.role === 'admin' ? '' : 'none';
+
   $('drawer').classList.add('open');
   $('scrim').classList.add('open');
   // Update URL hash for shareable deep link
@@ -1126,6 +1137,21 @@ window.postUpdate = async () => {
   renderTable();
   await loadTimeline(state.selected.id);
   toast('Update posted');
+};
+
+window.deleteReferral = async () => {
+  if (!state.selected) return;
+  if (state.profile.role !== 'admin') { toast('Only admins can delete referrals'); return; }
+  const name = `${state.selected.client_first_name} ${state.selected.client_last_name}`;
+  const ok = confirm(`Permanently delete the referral for ${name}?\n\nThis will also remove all timeline updates on this referral. This cannot be undone.`);
+  if (!ok) return;
+  const { error } = await supabase.from('referrals').delete().eq('id', state.selected.id);
+  if (error) { toast('Delete failed: ' + error.message); return; }
+  toast('Referral deleted');
+  closeDrawer();
+  await loadReferrals();
+  renderStats();
+  renderTable();
 };
 
 // ============== INIT ==============
