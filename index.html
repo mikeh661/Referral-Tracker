@@ -683,6 +683,9 @@ window.submitAuth = async () => {
   try {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    // Reload so boot() picks up the new session and loads the app
+    location.reload();
+    return;
   } catch (e) {
     msg.innerHTML = `<div class="login-msg error">${e.message}</div>`;
   } finally {
